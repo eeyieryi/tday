@@ -2,8 +2,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <termios.h>
-#include <unistd.h>
 #include <sys/ioctl.h>
 #include <termios.h>
 #include <unistd.h>
@@ -24,7 +22,7 @@ void set_raw_mode(struct termios *old_termios) {
     new_termios.c_lflag &= ~(ICANON | ECHO);
 
     // Set minimum characters to 1 and timeout to 0
-    new_termios.c_cc[VMIN]  = 1;
+    new_termios.c_cc[VMIN] = 1;
     new_termios.c_cc[VTIME] = 0;
 
     // Apply new settings
@@ -32,7 +30,6 @@ void set_raw_mode(struct termios *old_termios) {
 }
 
 void restore_terminal_mode(struct termios *tio) { tcsetattr(STDIN_FILENO, TCSANOW, tio); }
-
 
 #define zero_array(arr, n)            \
     do {                              \
