@@ -5,4 +5,4 @@
 !Makefile
 !LICENSE
 !tday.c
-!config.h
+!config.def.h

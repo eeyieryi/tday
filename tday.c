@@ -115,7 +115,7 @@ int load_entries(entry_t *entries, int *entries_sz) {
         for (; i < sqlite3_column_bytes(get_entries_stmt, 1); i++) {
             entry.description[i] = description[i];
         }
-        entry.description[i + 1] = '\0';
+        entry.description[i] = '\0';
 
         entry.completed = sqlite3_column_int(get_entries_stmt, 2);
         entries[(*entries_sz)++] = entry;
@@ -377,7 +377,7 @@ int main(void) {
                     for (; i < (*buf_size); i++) {
                         entries[current_selection].description[i] = buf[i];
                     }
-                    entries[current_selection].description[i + 1] = '\0';
+                    entries[current_selection].description[i] = '\0';
 
                     update_entry(&entries[current_selection]);
                     zero_buf(buf, buf_size, buf_cursor);
@@ -389,9 +389,11 @@ int main(void) {
                 switch (current_view) {
                 case LIST_VIEW:
                     if (entries_in_view > 0) {
-                        for (int i = 0; i < MAX_STRING_LENGTH; i++) {
+                        int len = strlen(entries[current_selection].description);
+                        for (int i = 0; i < len; i++) {
                             edit_entry_buf[i] = entries[current_selection].description[i];
                         }
+
                         edit_entry_buf_size = strlen(edit_entry_buf);
                         edit_entry_buf_cursor = edit_entry_buf_size;
                         current_view = EDIT_ENTRY_VIEW;
@@ -407,6 +409,7 @@ int main(void) {
                 case LIST_VIEW:
                     delete_entry(&entries[current_selection]);
                     should_reload_entries = 1;
+                    current_selection -= 1;
                     break;
                 case NEW_ENTRY_VIEW:
                 case EDIT_ENTRY_VIEW:
