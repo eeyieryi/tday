@@ -6,6 +6,8 @@
 #include <termios.h>
 #include <unistd.h>
 
+#include "config.h"
+
 #define STRIKETHROUGH "\e[9m"
 #define RESET_FMT "\e[0m"
 
@@ -210,7 +212,7 @@ int main(void) {
     struct termios old_tio;
     set_raw_mode(&old_tio);
 
-    check_db_err(sqlite3_open("tday.db", &DB), "sqlite3_open");
+    check_db_err(sqlite3_open(db_file_path, &DB), "sqlite3_open");
     check_db_err(sqlite3_exec(DB, create_table_entries_sql, NULL, 0, NULL), "create_table_entries");
     check_db_err(sqlite3_prepare_v2(DB, get_entries_sql, -1, &get_entries_stmt, 0), "prepare_get_entries_stmt");
     check_db_err(sqlite3_prepare_v2(DB, insert_entry_sql, -1, &insert_entry_stmt, 0), "prepare_insert_entry_stmt");
@@ -322,7 +324,7 @@ int main(void) {
             printf("\e[2J"); // Clear entire screen
             printf("\e[H");  // Move cursor to top-left
             printf("tday\n\n");
-            printf("new task description:\n");
+            printf("description: %s\n", entries[current_selection].description);
             printf("\e[6;0H");
             printf("enter to save, escape to discard changes\n");
             printf("\e[4;0H");
