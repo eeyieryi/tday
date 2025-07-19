@@ -82,15 +82,18 @@ typedef struct Entry {
     "ignored INTEGER DEFAULT(0)"          \
     ");"
 
-#define get_entries_sql "SELECT * FROM entries WHERE ignored = 0 ORDER BY id DESC LIMIT 10;"
+#define migrate_table_entries_v1_sql "ALTER TABLE entries ADD COLUMN updated_at INTEGER;"
+
+#define get_entries_sql \
+    "SELECT * FROM entries WHERE ignored = 0 ORDER BY completed ASC, updated_at DESC, id DESC LIMIT 10;"
 
 #define insert_entry_sql                 \
     "INSERT INTO entries (description) " \
     "VALUES (?);"
 
-#define update_entry_sql                               \
-    "UPDATE entries "                                  \
-    "SET description = ?, completed = ?, ignored = ? " \
+#define update_entry_sql                                                            \
+    "UPDATE entries "                                                               \
+    "SET description = ?, completed = ?, ignored = ?, updated_at = strftime('%s') " \
     "WHERE id = ?;"
 
 #define delete_entry_sql "DELETE FROM entries WHERE id = ?;"
@@ -103,6 +106,28 @@ sqlite3_stmt *insert_entry_stmt = NULL;
 sqlite3_stmt *update_entry_stmt = NULL;
 sqlite3_stmt *delete_entry_stmt = NULL;
 sqlite3_stmt *clear_completed_entries_stmt = NULL;
+
+int get_db_version(int *db_version) {
+    int result = 0;
+    sqlite3_stmt *stmt = NULL;
+    result = sqlite3_prepare_v2(DB, "PRAGMA user_version;", -1, &stmt, 0);
+    if (result != SQLITE_OK) {
+        return_defer(result);
+    }
+    result = sqlite3_step(stmt);
+    if (result != SQLITE_ROW) {
+        return_defer(result);
+    }
+    (*db_version) = sqlite3_column_int(stmt, 0);
+    result = sqlite3_step(stmt);
+    if (result != SQLITE_DONE) {
+        return_defer(result);
+    }
+    return_defer(0);
+defer:
+    sqlite3_finalize(stmt);
+    return result;
+}
 
 int load_entries(entry_t *entries, int *entries_sz) {
     int result;
@@ -214,6 +239,16 @@ int main(void) {
 
     check_db_err(sqlite3_open(db_file_path, &DB), "sqlite3_open");
     check_db_err(sqlite3_exec(DB, create_table_entries_sql, NULL, 0, NULL), "create_table_entries");
+
+    int db_version;
+    check_db_err(get_db_version(&db_version), "get_db_version");
+    if (db_version == 0) {
+        sqlite3_exec(DB, "BEGIN TRANSACTION;", NULL, NULL, NULL);
+        check_db_err(sqlite3_exec(DB, migrate_table_entries_v1_sql, NULL, 0, NULL), "migrate_table_entries_v1");
+        check_db_err(sqlite3_exec(DB, "PRAGMA user_version = 1;", NULL, 0, NULL), "db_version_to_1");
+        sqlite3_exec(DB, "END TRANSACTION;", NULL, NULL, NULL);
+    }
+
     check_db_err(sqlite3_prepare_v2(DB, get_entries_sql, -1, &get_entries_stmt, 0), "prepare_get_entries_stmt");
     check_db_err(sqlite3_prepare_v2(DB, insert_entry_sql, -1, &insert_entry_stmt, 0), "prepare_insert_entry_stmt");
     check_db_err(sqlite3_prepare_v2(DB, update_entry_sql, -1, &update_entry_stmt, 0), "prepare_update_entry_stmt");
@@ -362,6 +397,7 @@ int main(void) {
                 case LIST_VIEW:
                     entries[current_selection].completed = entries[current_selection].completed ? 0 : 1;
                     update_entry(&entries[current_selection]);
+                    should_reload_entries = 1;
                     break;
                 case NEW_ENTRY_VIEW:
                     new_entry(buf);
@@ -381,6 +417,7 @@ int main(void) {
 
                     update_entry(&entries[current_selection]);
                     zero_buf(buf, buf_size, buf_cursor);
+                    should_reload_entries = 1;
                     current_view = LIST_VIEW;
                 } break;
                 }
