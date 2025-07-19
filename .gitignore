@@ -1,0 +1,6 @@
+*
+!.clang-format
+!.clangd
+!.gitignore
+!Makefile
+!tday.c
