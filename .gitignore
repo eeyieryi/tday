@@ -3,4 +3,5 @@
 !.clangd
 !.gitignore
 !Makefile
+!LICENSE
 !tday.c
