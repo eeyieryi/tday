@@ -388,12 +388,14 @@ int main(void) {
             case 'e':
                 switch (current_view) {
                 case LIST_VIEW:
-                    for (int i = 0; i < MAX_STRING_LENGTH; i++) {
-                        edit_entry_buf[i] = entries[current_selection].description[i];
+                    if (entries_in_view > 0) {
+                        for (int i = 0; i < MAX_STRING_LENGTH; i++) {
+                            edit_entry_buf[i] = entries[current_selection].description[i];
+                        }
+                        edit_entry_buf_size = strlen(edit_entry_buf);
+                        edit_entry_buf_cursor = edit_entry_buf_size;
+                        current_view = EDIT_ENTRY_VIEW;
                     }
-                    edit_entry_buf_size = strlen(edit_entry_buf);
-                    edit_entry_buf_cursor = edit_entry_buf_size;
-                    current_view = EDIT_ENTRY_VIEW;
                     break;
                 case NEW_ENTRY_VIEW:
                 case EDIT_ENTRY_VIEW:
