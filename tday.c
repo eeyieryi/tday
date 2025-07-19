@@ -410,6 +410,9 @@ int main(void) {
                     delete_entry(&entries[current_selection]);
                     should_reload_entries = 1;
                     current_selection -= 1;
+                    if (current_selection < 0) {
+                        current_selection = 0;
+                    }
                     break;
                 case NEW_ENTRY_VIEW:
                 case EDIT_ENTRY_VIEW:
